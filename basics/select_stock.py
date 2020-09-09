@@ -1,4 +1,5 @@
-import basics.utils as utils
+import utils
+from utils import timing
 
 def pretty_print(anything, pad=5, char=' '):
     # if isinstance(anything, list):
@@ -13,50 +14,54 @@ def pretty_print(anything, pad=5, char=' '):
 # Program for 0-1 Knapsack problem
 # Returns the maximum value that can
 # be put in a knapsack of capacity W
-def knapSack(W, wt, val, n):
-    K = [[0 for x in range(W + 1)] for x in range(n + 1)]
+@timing
+def knapSack(limit, weights, values):
+    # Prepare matrix
+    K = [[0 for x in range(limit + 1)] for x in range(len(weights) + 1)]
 
-    # Build table K[][] in bottom up manner
-    for i in range(n + 1):
-        for w in range(W + 1):
+    for i in range(len(weights) + 1):
+        for w in range(limit + 1):
             if i == 0 or w == 0:
                 K[i][w] = 0
-            elif wt[i-1] <= w:
-                K[i][w] = max(val[i-1]
-                              + K[i-1][w-wt[i-1]],  K[i-1][w])
+            elif weights[i - 1] <= w:
+                K[i][w] = max(
+                              values[i - 1] + K[i - 1][w - weights[i - 1]],
+                              K[i-1][w]
+                        )
             else:
                 K[i][w] = K[i-1][w]
 
     for i, row in enumerate(K):
         pretty_print(row)
 
-    res = K[n][W]
-    items = []
-    w = W
-    for i in range(n, 0, -1):
-        if res <= 0:
-            break
-        # either the result comes from the
-        # top (K[i-1][w]) or from (val[i-1]
-        # + K[i-1] [w-wt[i-1]]) as in Knapsack
-        # table. If it comes from the latter
-        # one/ it means the item is included.
-        if res == K[i - 1][w]:
-            continue
-        else:
+    return K[n][limit]
 
-            # This item is included.
-            # print(wt[i - 1])
-            items.append([wt[i - 1], i-1, val[i-1]])
+@timing
+def knapSack2(limit, weights, values):
+    # Prepare matrix
+    K = [[0 for x in range(limit + 1)] for x in range(len(weights) + 1)]
 
-            # Since this weight is included
-            # its value is deducted
-            res = res - val[i - 1]
-            w = w - wt[i - 1]
+    for i in range(len(weights)):
+        if weights[i] < limit:
+            K[i][weights[i]] = values[i]
 
-    # print(items)
+        for w in range(limit + 1):
+            # if i == 0 or w == 0:
+            #     K[i][w] = 0
+            # if weights[i] <= limit and w == weights[i]:
+            #     K[i][w] = max(K[i][w], values[i])
 
-    return K[n][W]
+            # From top cell
+            K[i][w] = max(K[i][w], K[i-1][w])
+
+            if w - weights[i] >= 0:
+                K[i][w] = max(
+                    # From top left
+                    values[i] + K[i-1][w - weights[i]],
+                    K[i][w]
+                )
+
+    return K[n-1][limit]
 
 
 def add_forward(num, row, col, matrix):
@@ -64,53 +69,51 @@ def add_forward(num, row, col, matrix):
         if matrix[row][col] < num:
             matrix[row][col] = num
 
-
-def solve(limit, current_values, profits):
+@timing
+def matrix_based_solution(limit, item_weights, values):
     # profits = [future_values[i] - current_values[i] for i in range(len(current_values))]
 
     # print(profits)
-    matrix = [0 for i in current_values]
+    matrix = [0 for i in item_weights]
     for i, row in enumerate(matrix):
         matrix[i] = [0]*(limit+2)
 
 
     maximum = 0
-    for i, investment in enumerate(current_values[:]):
-        for subset_sum in range(limit+1):
-            if subset_sum == 0:
-                continue
-            if subset_sum == investment:
-                matrix[i][investment] = profits[i]
+    for i, cost in enumerate(item_weights[:]):
+        for wt in range(1, limit+1):
+            if wt == cost:
+                matrix[i][cost] = values[i]
 
-            matrix[i][subset_sum] = max(matrix[i][subset_sum], matrix[i-1][subset_sum])  # From top
-            if matrix[i-1][subset_sum]:
-                add_forward(matrix[i-1][subset_sum] + profits[i], i, subset_sum + investment, matrix)
-            maximum = max(maximum, matrix[i][subset_sum])
+            matrix[i][wt] = max(matrix[i][wt], matrix[i-1][wt])  # From top
+            
+            if matrix[i-1][wt]:
+                add_forward(matrix[i-1][wt] + values[i], i, wt + cost, matrix)
 
-    # print('  ', end='')
-    pretty_print([x for x in range(len(matrix[0]))])
-    for i, x in enumerate(matrix):
-        # print(' ' + str(i), end='')
-        pretty_print(x)
-    # print(len([x for x in matrix[i] if x > 0]))
-    # print()
+            maximum = max(maximum, matrix[i][wt])
 
+    for i, row in enumerate(matrix):
+        pretty_print(row)
     return maximum
 
 
-def simple(limit, wts, vals):
-    cumulated = []
+@timing
+def simple_solution(limit, weights, values):
+    possible_ways = []
     maximum = 0
-    for i, weight in enumerate(wts):
-        tmp = []
-        for c in cumulated:
-            if weight + c[0] <= limit:
-                tmp.append([weight + c[0], vals[i] + c[1]])
-                maximum = max(maximum, vals[i] + c[1])
+    
+    for i, weight in enumerate(weights):
+        more_ways = []
+        for way in possible_ways:
+            if weight + way[0] <= limit:
+                more_ways.append([weight + way[0], values[i] + way[1]])
+                # Append the current item
+                maximum = max(maximum, values[i] + way[1])
         if weight <= limit:
-            tmp.append([weight, vals[i]])
-            maximum = max(maximum, vals[i])
-        cumulated.extend(tmp)
+            more_ways.append([weight, values[i]])
+            maximum = max(maximum, values[i])
+
+        possible_ways.extend(more_ways)
 
     return maximum
 
@@ -135,23 +138,36 @@ weights = list(map(int, weights))
 # res = knapSack(71, weights, values, len(weights))
 # print(res)
 W = 71
-res1 = knapSack(W, weights, values, len(weights))
-res2 = solve(W, weights, values)
-res3 = solve2(W, weights, values)
-print(res1, res2, res3)
+# res1 = knapSack(W, weights, values)
+# res2 = matrix_based_solution(W, weights, values)
+# res3 = simple_solution(W, weights, values)
+# print(res1, res2, res3)
 
-for x in range(500):
-    W = utils.an_int([0, 1000])
-    n = utils.an_int([5, 30])
-    weights = utils.array_of_random_ints(n, [1, 800])
-    values = utils.array_of_random_ints(n, [1, 800])
-    res1 = knapSack(W, weights, values, len(weights))
-    res2 = solve(W, weights, values)
-    res3 = solve2(W, weights, values)
-    # print(res1, res2, res3)
+for x in range(100):
+    W = utils.an_int([2, 900])
+    n = utils.an_int([5, 900])
+    weights = utils.array_of_random_ints(n, [1, 90], 2)
+    values = utils.array_of_random_ints(n, [1, 80])
+
+    # print("size", n)
+    # print(W, weights, values)
+    res1 = knapSack(W, weights, values)
+
+    # print("Knapsack", res1)
+
+    res3 = knapSack2(W, weights, values)
+    # print("KnapSack2", res3)
+
+    res2 = matrix_based_solution(W, weights, values)
+
+    # print("Solve1", res2)
+    
     if not (res1 == res2 == res3):
         print("Found------------------------")
         print(res1, res2, res3)
         print(W, weights, values)
         print("EndFound------------------------")
+    print("......................................................")
 
+
+utils.print_timings()
