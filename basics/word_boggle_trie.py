@@ -1,20 +1,26 @@
 
-
-
 def neighbors(point, matrix):
     num_rows = len(matrix)
     num_cols = len(matrix[0])
 
     ret = []
-    for next_cell in [[+1, 0], [-1, 0], [0, -1], [0, +1],
-                      [+1, +1], [-1, +1], [-1, -1], [+1, -1]]:
+    for next_cell in [[+1, 0],   # Down
+                      [-1, 0],   # Up
+                      [0, -1],   # Left
+                      [0, +1],   # Right
+                      [+1, +1],  # Lower Right
+                      [-1, +1],  # Upper Right
+                      [-1, -1],  # Upper Left
+                      [+1, -1]]:  # Lower Left
         if (0 <= point[0] + next_cell[0] < num_rows) \
                 and (0 <= point[1] + next_cell[1] < num_cols):
-            ret.append([point[0] + next_cell[0], point[1] + next_cell[1]])
+            # Check that it is inside matrix
+            ret.append([point[0] + next_cell[0],  # Row
+                        point[1] + next_cell[1]])  # Column
     return ret
 
 
-def create_trie(list_of_keys):
+def create_data_structure(list_of_keys):
     trie = {}
 
     for key in list_of_keys:
@@ -27,7 +33,7 @@ def create_trie(list_of_keys):
     return trie
 
 
-def find_in_trie(trie, key):
+def retrieve_from_data_structure(trie, key):
     tmp = trie
     for letter in key:
         if letter not in tmp:
@@ -36,7 +42,7 @@ def find_in_trie(trie, key):
     return True
 
 
-def next_letters(trie, prefix):
+def retrieve_next_letters(trie, prefix):
     # print("next for ", prefix)
     tmp = trie
     for letter in prefix:
@@ -53,63 +59,50 @@ def not_visited(x, visited):
     return L == 0
 
 
-def check_word(nxts, word, x, y, matrix, trie, found, dictionary, boggle, visited = []):
-    at = lambda o: matrix[o[0]][o[1]]
-
-    if nxts == False:
-        return
-
-    if not nxts:
-        # print(word)
+def check_word_is_in_dictionary(next_letters, word,
+                                x, y,
+                                matrix, trie,
+                                found, dictionary,
+                                boggle, visited=[]):
+    if not next_letters:
         found[word] = 1
         return
 
     if word in dictionary:
-        # print(word)
         found[word] = 1
 
     nbrs = neighbors([x, y], boggle)
     nbrs = list(filter(lambda n:
-                       matrix[n[0]][n[1]] in list(nxts.keys()), nbrs))
+                       matrix[n[0]][n[1]] in list(next_letters.keys()), nbrs))
 
-    # if word == 'G':
-    #     print(nxts.keys(), list(map(at, nbrs)))
-
-    # if not nbrs:
-    #     print(word)
-    #     return
     visited.append([x, y])
     for nbr in nbrs:
         if not_visited(nbr, visited.copy()):
             tmp_word = word + matrix[nbr[0]][nbr[1]]
-            check_word(next_letters(trie, tmp_word),
-                       tmp_word, nbr[0], nbr[1],
-                       matrix, trie, found, dictionary, boggle, visited)
+            check_word_is_in_dictionary(retrieve_next_letters(trie, tmp_word),
+                                        tmp_word, nbr[0], nbr[1],
+                                        matrix, trie, found,
+                                        dictionary, boggle, visited)
     visited.pop()
 
 
 def solve(boggle, dictionary):
-    trie = create_trie(dictionary)
+    trie = create_data_structure(dictionary)
 
     found = {}
 
     for i, row in enumerate(boggle):
         for j, letter in enumerate(row):
-            could_be_in_dict = next_letters(trie, letter)
+            next_letters = retrieve_next_letters(trie, letter)
 
-            if could_be_in_dict == False:
+            if next_letters == False:
                 continue
 
-            # if not could_be_in_dict:
-            # continue
-            # print(letter)
-
-            check_word(could_be_in_dict, letter, i, j,
-                       boggle, trie, found,
-                       dictionary, boggle)
+            check_word_is_in_dictionary(next_letters, letter, i, j,
+                                        boggle, trie, found,
+                                        dictionary, boggle)
 
     return found
-# print(next_letters(trie, "S").keys())
 
 
 dictionary = ['dfd', 'ded', 'fd', 'e', 'dec', 'df']
@@ -126,5 +119,3 @@ if len(L) == 0:
 else:
     print(" ".join(sorted(L)))
 
-# db bcd
-# e fd ded dfd df
