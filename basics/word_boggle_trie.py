@@ -43,7 +43,6 @@ def retrieve_from_data_structure(trie, key):
 
 
 def retrieve_next_letters(trie, prefix):
-    # print("next for ", prefix)
     tmp = trie
     for letter in prefix:
         if letter not in tmp:
@@ -51,8 +50,6 @@ def retrieve_next_letters(trie, prefix):
         tmp = tmp[letter]
     return tmp
 
-
-# print(next_letters(trie, "G"))
 
 def not_visited(x, visited):
     L = len(list(filter(lambda o: o[0] == x[0] and o[1] == x[1], visited)))
@@ -63,7 +60,7 @@ def check_word_is_in_dictionary(next_letters, word,
                                 x, y,
                                 matrix, trie,
                                 found, dictionary,
-                                boggle, visited=[]):
+                                visited=[]):
     if not next_letters:
         found[word] = 1
         return
@@ -71,7 +68,7 @@ def check_word_is_in_dictionary(next_letters, word,
     if word in dictionary:
         found[word] = 1
 
-    nbrs = neighbors([x, y], boggle)
+    nbrs = neighbors([x, y], board)
     nbrs = list(filter(lambda n:
                        matrix[n[0]][n[1]] in list(next_letters.keys()), nbrs))
 
@@ -80,18 +77,19 @@ def check_word_is_in_dictionary(next_letters, word,
         if not_visited(nbr, visited.copy()):
             tmp_word = word + matrix[nbr[0]][nbr[1]]
             check_word_is_in_dictionary(retrieve_next_letters(trie, tmp_word),
-                                        tmp_word, nbr[0], nbr[1],
+                                        tmp_word,
+                                        nbr[0], nbr[1],
                                         matrix, trie, found,
-                                        dictionary, boggle, visited)
+                                        dictionary, visited)
     visited.pop()
 
 
-def solve(boggle, dictionary):
+def solve(board, dictionary):
     trie = create_data_structure(dictionary)
 
     found = {}
 
-    for i, row in enumerate(boggle):
+    for i, row in enumerate(board):
         for j, letter in enumerate(row):
             next_letters = retrieve_next_letters(trie, letter)
 
@@ -99,20 +97,20 @@ def solve(boggle, dictionary):
                 continue
 
             check_word_is_in_dictionary(next_letters, letter, i, j,
-                                        boggle, trie, found,
-                                        dictionary, boggle)
+                                        board, trie, found,
+                                        dictionary)
 
     return found
 
 
 dictionary = ['dfd', 'ded', 'fd', 'e', 'dec', 'df']
 
-boggle = [['f', 'f'],
+board = [['f', 'f'],
           ['d', 'e'],
           ['f', 'b'],
           ['b', 'e']]
 
-found = solve(boggle, dictionary)
+found = solve(board, dictionary)
 L = list(found.keys())
 if len(L) == 0:
     print(-1)

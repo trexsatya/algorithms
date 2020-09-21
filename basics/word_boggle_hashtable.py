@@ -24,7 +24,8 @@ def create_data_structure(list_of_keys):
     hashtable = {}
 
     for key in list_of_keys:
-        for prefix in [key[0:x] for x in range(1, len(key))]:
+        for prefix in [key[0:x] for x in
+                       range(1, len(key))]:
             if prefix not in hashtable:
                 hashtable[prefix] = 'prefix'
         hashtable[key] = 'word'
