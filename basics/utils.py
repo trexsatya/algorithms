@@ -2,6 +2,24 @@ import math
 import random
 from functools import wraps 
 from time import time
+import pprint
+from tabulate import tabulate
+from tkinter import *
+from PyQt5.QtWidgets import QTableWidget,QTableWidgetItem
+from basics.tables import show_table
+
+
+def print_matrix(matrix, row_ids=None):
+    # s = [[str(e) for e in row] for row in matrix]
+    # lens = [max(map(len, col)) for col in zip(*s)]
+    # fmt = '\t'.join('{{:{}}}'.format(x) for x in lens)
+    # table = [fmt.format(*row) for row in s]
+    # print('\n'.join(table))
+
+    print(tabulate(matrix, headers="keys", showindex=(row_ids if row_ids else "always"), tablefmt="fancy_grid"))
+
+    show_table(matrix, rows=row_ids)
+
 
 def an_int(within=None):
     if within is None:
